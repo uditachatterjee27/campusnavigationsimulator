@@ -1,0 +1,260 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Campus Navigation Simulator</title>
+    <style>
+      html,
+      body {
+        margin: 0;
+        height: 100%;
+        overflow: hidden;
+        background: #070b18;
+        font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+        cursor: default;
+      }
+      canvas {
+        cursor: default;
+      }
+
+      /* ------------------------------ Tutorial UI ------------------------------ */
+      #tutorialOverlay {
+        position: fixed;
+        inset: 0;
+        display: grid;
+        place-items: center;
+        background: rgba(4, 7, 18, 0.72);
+        z-index: 300;
+        padding: 18px;
+        backdrop-filter: blur(10px);
+      }
+      #tutorialCard {
+        width: min(760px, 100%);
+        border-radius: 18px;
+        background: rgba(0, 0, 0, 0.72);
+        border: 1px solid rgba(255, 255, 255, 0.14);
+        box-shadow: 0 26px 90px rgba(0, 0, 0, 0.65);
+        padding: 16px;
+      }
+      #tutorialTitle {
+        font-size: 22px;
+        font-weight: 950;
+        color: white;
+        margin: 0 0 10px 0;
+      }
+      #tutorialBody {
+        color: rgba(255, 255, 255, 0.92);
+        font-size: 15px;
+        line-height: 1.45;
+        white-space: normal;
+      }
+      .tutorialNav {
+        margin-top: 14px;
+        display: flex;
+        justify-content: space-between;
+        gap: 10px;
+        align-items: center;
+      }
+
+      /* ------------------------------ Look Mode Panel ------------------------------ */
+      #lookModePanel {
+        margin-top: 14px;
+        padding: 12px;
+        border-radius: 14px;
+        background: rgba(255, 255, 255, 0.06);
+        border: 1px solid rgba(255, 255, 255, 0.12);
+      }
+      #lookModePanel .row {
+        display: flex;
+        gap: 16px;
+        align-items: center;
+        flex-wrap: wrap;
+      }
+      #lookModePanel label {
+        font-weight: 800;
+        color: rgba(255, 255, 255, 0.92);
+      }
+
+      /* -------------------------------- Task bar -------------------------------- */
+      #taskBar {
+        position: fixed;
+        left: 12px;
+        top: 12px;
+        z-index: 200;
+        color: white;
+        padding: 12px 14px;
+        border-radius: 16px;
+        background: rgba(0, 0, 0, 0.4);
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
+        max-width: min(520px, calc(100% - 24px));
+        user-select: none;
+        pointer-events: none;
+      }
+      #taskTargetName {
+        font-weight: 950;
+        letter-spacing: 0.01em;
+      }
+
+      /* ------------------------------- Buttons -------------------------------- */
+      .btn {
+        appearance: none;
+        border: 0;
+        border-radius: 12px;
+        padding: 10px 14px;
+        font-weight: 900;
+        cursor: pointer;
+        user-select: none;
+      }
+      .btn:disabled {
+        opacity: 0.55;
+        cursor: not-allowed;
+      }
+      .tutorialPrimary {
+        background: linear-gradient(90deg, #2e6bff, #ffd166);
+        color: #081028;
+      }
+
+      /* Start walking glow */
+      @keyframes glowPulse {
+        0% {
+          box-shadow: 0 0 0 3px rgba(255, 209, 102, 0.45), 0 0 18px rgba(46, 107, 255, 0.25);
+          transform: translateY(0);
+        }
+        50% {
+          box-shadow: 0 0 0 3px rgba(255, 209, 102, 0.85), 0 0 44px rgba(46, 107, 255, 0.5),
+            0 0 80px rgba(255, 209, 102, 0.2);
+          transform: translateY(-1px);
+        }
+        100% {
+          box-shadow: 0 0 0 3px rgba(255, 209, 102, 0.45), 0 0 18px rgba(46, 107, 255, 0.25);
+          transform: translateY(0);
+        }
+      }
+      .isGlow {
+        animation: glowPulse 1.2s ease-in-out infinite;
+      }
+
+      /* ------------------------- Bottom controls (mobile) ------------------------- */
+      #bottomControls {
+        position: fixed;
+        left: 0;
+        right: 0;
+        bottom: 12px;
+        z-index: 210;
+        display: flex;
+        justify-content: center;
+        gap: 12px;
+        pointer-events: none;
+      }
+      #bottomControls .btn {
+        pointer-events: auto;
+        min-width: 140px;
+      }
+
+      /* ------------------------------ Joystick UI ------------------------------ */
+      #stickZone {
+        position: fixed;
+        left: 18px;
+        bottom: 18px;
+        width: 120px;
+        height: 120px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.06);
+        border: 1px solid rgba(255, 255, 255, 0.14);
+        z-index: 220;
+        touch-action: none;
+        pointer-events: auto;
+      }
+      #stickKnob {
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        width: 54px;
+        height: 54px;
+        transform: translate(-50%, -50%);
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.22);
+        border: 1px solid rgba(255, 255, 255, 0.22);
+        box-shadow: 0 10px 24px rgba(0, 0, 0, 0.25);
+      }
+
+      /* Center crosshair */
+      #crosshair {
+        position: fixed;
+        left: 50%;
+        top: 50%;
+        width: 18px;
+        height: 18px;
+        transform: translate(-50%, -50%);
+        border-radius: 999px;
+        border: 2px solid rgba(255, 255, 255, 0.92);
+        box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.35), 0 8px 24px rgba(0, 0, 0, 0.45);
+        pointer-events: none;
+        z-index: 230;
+      }
+      #crosshair.onTarget {
+        border-color: rgba(255, 209, 102, 1);
+        box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.35), 0 0 18px rgba(255, 209, 102, 0.55);
+      }
+
+      /* ----------------------- Optional: hide joystick desktop ---------------------- */
+      @media (hover: hover) and (pointer: fine) {
+        #stickZone {
+          display: none;
+        }
+      }
+    </style>
+  </head>
+
+  <body>
+    <!-- Tutorial overlay -->
+    <div id="tutorialOverlay">
+      <div id="tutorialCard">
+        <div id="tutorialTitle">Tutorial</div>
+        <div id="tutorialBody"></div>
+
+        <!-- Desktop look mode selection (shown/hidden by JS) -->
+        <div id="lookModePanel" style="display: none">
+          <div style="font-weight: 950; margin-bottom: 8px; color: white">Camera control mode</div>
+          <div class="row">
+            <label><input type="radio" name="lookMode" value="drag" checked /> Drag look</label>
+            <label><input type="radio" name="lookMode" value="fps" /> FPS (pointer lock)</label>
+          </div>
+          <div style="margin-top: 8px; opacity: 0.85; font-size: 13px; color: rgba(255, 255, 255, 0.9)">
+            FPS mode hides the OS cursor while locked. Press <b>Esc</b> to release it. Use the circle in
+            the center to aim.
+          </div>
+        </div>
+
+        <div class="tutorialNav">
+          <button id="tutorialBackBtn" class="btn">Back</button>
+          <button id="tutorialNextBtn" class="btn tutorialPrimary">Next</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Task bar -->
+    <div id="taskBar">
+      <div id="taskTargetName">Task</div>
+    </div>
+
+    <!-- Bottom controls -->
+    <div id="bottomControls">
+      <button id="resetBtn" class="btn">Reset</button>
+      <button id="confirmBtn" class="btn tutorialPrimary">Confirm</button>
+    </div>
+
+    <!-- Joystick -->
+    <div id="stickZone" aria-label="joystick">
+      <div id="stickKnob"></div>
+    </div>
+
+    <!-- Crosshair -->
+    <div id="crosshair" aria-hidden="true"></div>
+
+    <!-- IMPORTANT: module script so `import ...` works -->
+    <script type="module" src="./js/main.js"></script>
+  </body>
+</html>
