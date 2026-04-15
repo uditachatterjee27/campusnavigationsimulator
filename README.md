@@ -1,1 +1,1 @@
-code for the actual campus navigator game and the baseline game itis compared against.
+code for the actual campus navigator game and the baseline game it is compared against.
